@@ -1,0 +1,1473 @@
+[logitrack_pro (1) (1).html](https://github.com/user-attachments/files/28436267/logitrack_pro.1.1.html)<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LogiTrack Pro - Painel de Controlo Logístico</title>
+    <!-- Tailwind CSS para um design pixel-perfect -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js para renderização de gráficos modernos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #F8FAFC;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #F1F5F9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #CBD5E1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94A3B8;
+        }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen pb-16">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none"></div>
+
+    <!-- Modal de Confirmação customizado -->
+    <div id="confirm-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl transform scale-95 transition-transform duration-300">
+            <div class="text-slate-800">
+                <div class="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mb-4">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </div>
+                <h3 class="text-lg font-bold text-slate-950 mb-2">Eliminar Registo</h3>
+                <p class="text-sm text-slate-500 mb-6">Tem a certeza que deseja excluir esta ocorrência? Esta ação não pode ser desfeita.</p>
+                <div class="flex gap-3 justify-end">
+                    <button onclick="closeConfirmModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all">Cancelar</button>
+                    <button id="modal-confirm-delete-btn" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-xl transition-all">Sim, eliminar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Edição de Ocorrência -->
+    <div id="edit-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl transform scale-95 transition-transform duration-300">
+            <h3 class="text-lg font-bold text-slate-950 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                Editar Ocorrência
+            </h3>
+            <form id="edit-occurrence-form" onsubmit="handleEditFormSubmit(event)" class="space-y-4">
+                <input type="hidden" id="edit-id">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Data</label>
+                    <input type="date" id="edit-date" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Percurso</label>
+                    <input type="text" id="edit-percurso" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Paletes</label>
+                    <input type="number" id="edit-paletes" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Problema</label>
+                    <select id="edit-problema" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" required>
+                        <option value="DEVOLUÇÃO">DEVOLUÇÃO</option>
+                        <option value="ETIQUETAS">ETIQUETAS</option>
+                        <option value="INVENTÁRIO">INVENTÁRIO</option>
+                        <option value="PRÉVIAS">PRÉVIAS</option>
+                        <option value="PERCURSOS">PERCURSOS</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Status Atual</label>
+                    <select id="edit-status" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" required>
+                        <option value="RESOLVIDA T1">RESOLVIDA T1</option>
+                        <option value="RETRABALHANDO">RETRABALHANDO</option>
+                        <option value="DEVOLUÇÃO">DEVOLUÇÃO</option>
+                    </select>
+                </div>
+                <div class="flex gap-3 justify-end pt-2">
+                    <button type="button" onclick="closeEditModal()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all">Cancelar</button>
+                    <button type="submit" class="px-4 py-2.5 bg-[#1E1F5A] hover:bg-indigo-950 text-white text-xs font-bold rounded-xl transition-all shadow-lg">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
+        
+        <!-- HEADER PRINCIPAL -->
+        <header class="bg-gradient-to-r from-[#1E1F5A] to-[#2E3192] rounded-2xl p-6 sm:p-8 text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative overflow-hidden">
+            <div class="absolute right-0 top-0 opacity-10 pointer-events-none transform translate-x-12 -translate-y-6">
+                <svg class="w-80 h-80 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+            </div>
+            <div class="z-10">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-[11px] font-bold tracking-wider uppercase">LogiTrack Pro v2.5</span>
+                    <span id="cloud-indicator" class="w-2.5 h-2.5 rounded-full bg-slate-400 animate-pulse"></span>
+                    <span id="cloud-text" class="text-xs text-slate-300 font-medium">A conectar...</span>
+                </div>
+                <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">Monitorização Operacional de Retrabalho</h1>
+                <p class="text-slate-300 mt-2 text-sm sm:text-base max-w-3xl">
+                    Gestão ativa do fluxo de paletes de prévia plantas, devoluções retrabalhadas, etiquetagem, percursos e controlo local de inventário físico.
+                </p>
+            </div>
+            <div class="flex flex-wrap gap-3 w-full md:w-auto z-10 shrink-0">
+                <button onclick="scrollToSection('historico-diario')" class="flex-1 md:flex-initial px-5 py-2.5 bg-white/10 hover:bg-white/20 border border-white/10 rounded-xl text-sm font-semibold transition-all">
+                    Histórico Diário
+                </button>
+                <button onclick="scrollToSection('ocorrencias-section')" class="flex-1 md:flex-initial px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-semibold shadow-lg shadow-indigo-600/30 transition-all">
+                    Ver Ocorrências
+                </button>
+                <div class="relative group">
+                    <button onclick="toggleBackupDropdown()" class="p-2.5 bg-slate-800/80 hover:bg-slate-800 rounded-xl border border-slate-700/50 text-slate-300 transition-all" title="Backup & Opções">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/></svg>
+                    </button>
+                    <!-- Dropdown de backup -->
+                    <div id="backup-dropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-1 z-20 hidden">
+                        <button onclick="exportData()" class="w-full px-4 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg> Exportar Dados JSON
+                        </button>
+                        <button onclick="triggerImport()" class="w-full px-4 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg> Importar Dados JSON
+                        </button>
+                        <button onclick="resetToFallback()" class="w-full px-4 py-2 text-left text-xs font-semibold text-rose-600 hover:bg-rose-50 flex items-center gap-2 border-t border-slate-100">
+                            <svg class="w-4 h-4 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg> Restaurar Padrão
+                        </button>
+                    </div>
+                    <input type="file" id="import-file-input" class="hidden" accept=".json" onchange="importData(event)">
+                </div>
+            </div>
+        </header>
+
+        <!-- KPI CARDS GRID -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <!-- Paletes de Prévia -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md hover:border-slate-200 transition-all group">
+                <div class="flex justify-between items-start mb-4">
+                    <span class="text-xs font-bold text-slate-400 tracking-wider uppercase">Paletes de Prévia</span>
+                    <span class="p-2 bg-rose-50 text-rose-500 rounded-lg group-hover:bg-rose-500 group-hover:text-white transition-all">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                    </span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 border-t border-slate-100 pt-3">
+                    <div>
+                        <span class="text-[10px] font-bold text-rose-500 block uppercase">Rede Para</span>
+                        <span id="kpi-previas-rede" class="text-2xl font-black text-rose-600">0</span>
+                    </div>
+                    <div class="border-l border-slate-100 pl-3">
+                        <span class="text-[10px] font-bold text-emerald-500 block uppercase">Programada</span>
+                        <span id="kpi-previas-prog" class="text-2xl font-black text-emerald-600">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Devolução / Retrabalho -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md hover:border-slate-200 transition-all group">
+                <div class="flex justify-between items-start mb-4">
+                    <span class="text-xs font-bold text-slate-400 tracking-wider uppercase">Devolução / Retrabalho</span>
+                    <span class="p-2 bg-amber-50 text-amber-500 rounded-lg group-hover:bg-amber-500 group-hover:text-white transition-all">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H17"/></svg>
+                    </span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 border-t border-slate-100 pt-3">
+                    <div>
+                        <span class="text-[10px] font-bold text-rose-500 block uppercase">Rede Para</span>
+                        <span id="kpi-devolucoes-rede" class="text-2xl font-black text-rose-600">0</span>
+                    </div>
+                    <div class="border-l border-slate-100 pl-3">
+                        <span class="text-[10px] font-bold text-emerald-500 block uppercase">Programada</span>
+                        <span id="kpi-devolucoes-prog" class="text-2xl font-black text-emerald-600">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Etiquetar Colares -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md hover:border-slate-200 transition-all group">
+                <div class="flex justify-between items-start mb-4">
+                    <span class="text-xs font-bold text-slate-400 tracking-wider uppercase">Etiquetar Colares</span>
+                    <span class="p-2 bg-blue-50 text-blue-500 rounded-lg group-hover:bg-blue-500 group-hover:text-white transition-all">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    </span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 border-t border-slate-100 pt-3">
+                    <div>
+                        <span class="text-[10px] font-bold text-rose-500 block uppercase">Rede Para</span>
+                        <span id="kpi-etiquetas-rede" class="text-2xl font-black text-rose-600">0</span>
+                    </div>
+                    <div class="border-l border-slate-100 pl-3">
+                        <span class="text-[10px] font-bold text-emerald-500 block uppercase">Programada</span>
+                        <span id="kpi-etiquetas-prog" class="text-2xl font-black text-emerald-600">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Percursos Resolvidos -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md hover:border-slate-200 transition-all group">
+                <div class="flex justify-between items-start mb-4">
+                    <span class="text-xs font-bold text-slate-400 tracking-wider uppercase">Percursos Resolvidos</span>
+                    <span class="p-2 bg-indigo-50 text-indigo-500 rounded-lg group-hover:bg-indigo-500 group-hover:text-white transition-all">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+                    </span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 border-t border-slate-100 pt-3">
+                    <div>
+                        <span class="text-[10px] font-bold text-rose-500 block uppercase">Rede Para</span>
+                        <span id="kpi-percursos-rede" class="text-2xl font-black text-rose-600">0</span>
+                    </div>
+                    <div class="border-l border-slate-100 pl-3">
+                        <span class="text-[10px] font-bold text-emerald-500 block uppercase">Programada</span>
+                        <span id="kpi-percursos-prog" class="text-2xl font-black text-emerald-600">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inventário -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md hover:border-slate-200 transition-all group">
+                <div class="flex justify-between items-start mb-4">
+                    <span class="text-xs font-bold text-slate-400 tracking-wider uppercase">Inventário</span>
+                    <span class="p-2 bg-purple-50 text-purple-500 rounded-lg group-hover:bg-purple-500 group-hover:text-white transition-all">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                    </span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 border-t border-slate-100 pt-3">
+                    <div>
+                        <span class="text-[10px] font-bold text-rose-500 block uppercase">Rede Para</span>
+                        <span id="kpi-inventario-rede" class="text-2xl font-black text-rose-600">0</span>
+                    </div>
+                    <div class="border-l border-slate-100 pl-3">
+                        <span class="text-[10px] font-bold text-emerald-500 block uppercase">Programada</span>
+                        <span id="kpi-inventario-prog" class="text-2xl font-black text-emerald-600">0</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PROGRESSO DAS METAS DIÁRIAS -->
+        <section class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+            <div class="flex items-center gap-2 mb-4">
+                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <h2 class="text-xs font-bold text-slate-800 tracking-wider uppercase">Progresso das metas diárias</h2>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-6">
+                <!-- Metas item 1 -->
+                <div>
+                    <div class="flex justify-between text-xs font-semibold text-slate-600 mb-1.5">
+                        <span>Paletes de Prévia</span>
+                        <span id="meta-previas-text" class="font-bold text-slate-800">0/20</span>
+                    </div>
+                    <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                        <div id="meta-previas-bar" class="bg-emerald-500 h-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+                <!-- Metas item 2 -->
+                <div>
+                    <div class="flex justify-between text-xs font-semibold text-slate-600 mb-1.5">
+                        <span>Devoluções</span>
+                        <span id="meta-devolucoes-text" class="font-bold text-slate-800">0/10</span>
+                    </div>
+                    <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                        <div id="meta-devolucoes-bar" class="bg-amber-500 h-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+                <!-- Metas item 3 -->
+                <div>
+                    <div class="flex justify-between text-xs font-semibold text-slate-600 mb-1.5">
+                        <span>Etiquetas Coladas</span>
+                        <span id="meta-etiquetas-text" class="font-bold text-slate-800">0/150</span>
+                    </div>
+                    <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                        <div id="meta-etiquetas-bar" class="bg-blue-500 h-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+                <!-- Metas item 4 -->
+                <div>
+                    <div class="flex justify-between text-xs font-semibold text-slate-600 mb-1.5">
+                        <span>Percursos Resolvidos</span>
+                        <span id="meta-percursos-text" class="font-bold text-slate-800">0/10</span>
+                    </div>
+                    <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                        <div id="meta-percursos-bar" class="bg-indigo-500 h-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+                <!-- Metas item 5 -->
+                <div>
+                    <div class="flex justify-between text-xs font-semibold text-slate-600 mb-1.5">
+                        <span>Inventário</span>
+                        <span id="meta-inventario-text" class="font-bold text-slate-800">0/10</span>
+                    </div>
+                    <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                        <div id="meta-inventario-bar" class="bg-purple-500 h-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CHARTS SECTION -->
+        <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Gráfico de Evolução de Produtividade -->
+            <div class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm lg:col-span-2 flex flex-col justify-between">
+                <div>
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Evolução de Produtividade</h3>
+                            <p class="text-xs text-slate-400">Histórico consolidado semanal</p>
+                        </div>
+                        <div class="flex flex-wrap gap-1 bg-slate-100 p-1 rounded-xl">
+                            <button onclick="filterChart('Tudo')" id="btn-filter-Tudo" class="chart-filter-btn px-3 py-1.5 text-xs font-medium rounded-lg bg-white shadow-sm text-indigo-600 transition-all">Tudo</button>
+                            <button onclick="filterChart('Prévias')" id="btn-filter-Prévias" class="chart-filter-btn px-3 py-1.5 text-xs font-medium rounded-lg text-slate-600 hover:text-slate-900 transition-all">Prévias</button>
+                            <button onclick="filterChart('Retrabalhos')" id="btn-filter-Retrabalhos" class="chart-filter-btn px-3 py-1.5 text-xs font-medium rounded-lg text-slate-600 hover:text-slate-900 transition-all">Retrabalhos</button>
+                            <button onclick="filterChart('Etiquetas')" id="btn-filter-Etiquetas" class="chart-filter-btn px-3 py-1.5 text-xs font-medium rounded-lg text-slate-600 hover:text-slate-900 transition-all">Etiquetas</button>
+                            <button onclick="filterChart('Percursos')" id="btn-filter-Percursos" class="chart-filter-btn px-3 py-1.5 text-xs font-medium rounded-lg text-slate-600 hover:text-slate-900 transition-all">Percursos</button>
+                            <button onclick="filterChart('Inventário')" id="btn-filter-Inventário" class="chart-filter-btn px-3 py-1.5 text-xs font-medium rounded-lg text-slate-600 hover:text-slate-900 transition-all">Inventário</button>
+                        </div>
+                    </div>
+                    <div class="relative h-72">
+                        <canvas id="productivityChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráfico de Distribuição de Trabalho -->
+            <div class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex flex-col justify-between">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider mb-1">Distribuição de Trabalho</h3>
+                    <p class="text-xs text-slate-400 mb-6">Proporção operacional de hoje</p>
+                    
+                    <div class="relative h-56 flex items-center justify-center">
+                        <canvas id="distributionChart"></canvas>
+                        <div id="distribution-empty" class="absolute inset-0 flex flex-col items-center justify-center bg-white/95 text-slate-400 text-xs font-medium hidden">
+                            <svg class="w-10 h-10 mb-2 text-slate-300 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                            <span>Sem Ocorrências hoje</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-100 pt-4 mt-6 space-y-3">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-slate-500 font-medium">Total de Operações Ativas</span>
+                        <span id="total-operacoes" class="font-bold text-slate-800">0</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-slate-500 font-medium">Eficiência Global do Turno</span>
+                        <span id="eficiencia-turno" class="font-bold text-indigo-600">0%</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- OCORRÊNCIAS E FORMULÁRIO -->
+        <section id="ocorrencias-section" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Tabela de Ocorrências por Percurso -->
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm lg:col-span-2 overflow-hidden flex flex-col justify-between">
+                <div>
+                    <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <div class="flex items-center gap-3">
+                                <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Ocorrências por Percurso</h3>
+                                <span id="pendentes-badge" class="px-2.5 py-0.5 text-[10px] font-bold bg-rose-100 text-rose-700 rounded-full">
+                                    0 PENDENTES
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-1">Status ativo de percursos (clique no status para alternar rapidamente)</p>
+                        </div>
+                        <div class="flex items-center gap-2 w-full sm:w-auto">
+                            <!-- Filtro Rápido de Tabela -->
+                            <select id="table-filter-problema" onchange="renderOccurrencesTable()" class="bg-slate-50 border border-slate-200 text-[10px] font-bold text-slate-500 rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+                                <option value="ALL">TODOS PROBLEMAS</option>
+                                <option value="DEVOLUÇÃO">DEVOLUÇÃO</option>
+                                <option value="ETIQUETAS">ETIQUETAS</option>
+                                <option value="INVENTÁRIO">INVENTÁRIO</option>
+                                <option value="PRÉVIAS">PRÉVIAS</option>
+                                <option value="PERCURSOS">PERCURSOS</option>
+                            </select>
+                            <select id="table-filter-status" onchange="renderOccurrencesTable()" class="bg-slate-50 border border-slate-200 text-[10px] font-bold text-slate-500 rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+                                <option value="ALL">TODOS STATUS</option>
+                                <option value="RESOLVIDA T1">RESOLVIDA T1</option>
+                                <option value="RETRABALHANDO">RETRABALHANDO</option>
+                                <option value="DEVOLUÇÃO">PENDENTES</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                                    <th class="py-3 px-6">Data</th>
+                                    <th class="py-3 px-6">Percurso</th>
+                                    <th class="py-3 px-6 text-center">Paletes</th>
+                                    <th class="py-3 px-6">Problema</th>
+                                    <th class="py-3 px-6">Status</th>
+                                    <th class="py-3 px-6 text-center">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="occurrences-table-body" class="divide-y divide-slate-100 text-sm">
+                                <!-- Preenchido dinamicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="p-6 border-t border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <span id="totais-turno" class="text-xs font-semibold text-slate-500">0 registos totais neste turno</span>
+                    <div class="flex items-center gap-4 text-xs font-bold">
+                        <span class="flex items-center gap-1.5 text-emerald-600"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> Resolvidos</span>
+                        <span class="flex items-center gap-1.5 text-amber-600"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span> Retrabalho</span>
+                        <span class="flex items-center gap-1.5 text-rose-600"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> Pendentes</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Formulário Nova Ocorrência -->
+            <div class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex flex-col justify-between">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider mb-1">Nova Ocorrência</h3>
+                    <p class="text-xs text-slate-400 mb-6">Registo de desvios operacionais de percurso no turno atual.</p>
+                    
+                    <form id="new-occurrence-form" onsubmit="handleFormSubmit(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Data</label>
+                            <input type="date" id="form-date" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Percurso</label>
+                            <input type="text" id="form-percurso" placeholder="Ex: 11728459" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Paletes</label>
+                            <input type="number" id="form-paletes" placeholder="Quantidade" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Problema</label>
+                            <select id="form-problema" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" required>
+                                <option value="DEVOLUÇÃO">DEVOLUÇÃO</option>
+                                <option value="ETIQUETAS">ETIQUETAS</option>
+                                <option value="INVENTÁRIO">INVENTÁRIO</option>
+                                <option value="PRÉVIAS">PRÉVIAS</option>
+                                <option value="PERCURSOS">PERCURSOS</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Status Atual</label>
+                            <select id="form-status" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" required>
+                                <option value="RESOLVIDA T1">RESOLVIDA T1</option>
+                                <option value="RETRABALHANDO">RETRABALHANDO</option>
+                                <option value="DEVOLUÇÃO">DEVOLUÇÃO</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="w-full py-3 bg-[#1E1F5A] hover:bg-indigo-950 text-white font-bold rounded-xl text-xs uppercase tracking-wider shadow-lg transition-all mt-4 hover:shadow-indigo-900/20">
+                            Gravar Ocorrência
+                        </button>
+                    </form>
+                </div>
+
+                <div class="mt-6 p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 flex items-start gap-3">
+                    <span class="p-1 bg-indigo-100 text-indigo-600 rounded-lg mt-0.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </span>
+                    <div class="text-[11px] text-indigo-950 leading-relaxed font-semibold">
+                        <strong class="block mb-0.5">Informação de Turno</strong>
+                        O status <span class="text-emerald-700">RESOLVIDA T1</span> garante que a devolução/palete foi devidamente tratada, auditada e registada na primeira fase operacional.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- HISTÓRICO DE PRODUTIVIDADE DIÁRIO -->
+        <section id="historico-diario" class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Histórico de Produtividade Diário</h3>
+                    <p class="text-xs text-slate-400 mt-1">Últimos registos consolidados no sistema local (atualizados pelas ocorrências)</p>
+                </div>
+                <div class="relative w-full sm:w-64">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    </span>
+                    <input type="text" id="history-search" oninput="renderHistoryTable()" placeholder="Pesquisar por data (ex: 30/05/2026)..." class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                            <th class="py-3.5 px-6">Data</th>
+                            <th class="py-3.5 px-6 text-center">Prévias</th>
+                            <th class="py-3.5 px-6 text-center">Retrabalhos</th>
+                            <th class="py-3.5 px-6 text-center">Etiquetas</th>
+                            <th class="py-3.5 px-6 text-center">Percursos</th>
+                            <th class="py-3.5 px-6 text-center">Inventários</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-table-body" class="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
+                        <!-- Preenchido dinamicamente -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="p-6 border-t border-slate-100 bg-slate-50/30 flex justify-between items-center">
+                <span id="history-pagination-info" class="text-xs text-slate-400 font-medium">A mostrar 1 de 9 registos</span>
+                <button onclick="toggleAllHistory()" id="btn-show-all-history" class="text-xs font-extrabold text-indigo-600 hover:text-indigo-500 tracking-wider uppercase transition-all">
+                    Ver Todo o Histórico
+                </button>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Firebase Cloud SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- DATA INITIALIZATION DECODED FROM URL / LOCALSTORAGE ---
+        const fallbackData = {
+            production: [
+                {id: "1", date: "2026-05-23", previas: 12, devolucoes: 4, etiquetas: 100, percursos: 4, inventario: 5},
+                {id: "2", date: "2026-05-24", previas: 10, devolucoes: 6, etiquetas: 110, percursos: 5, inventario: 8},
+                {id: "3", date: "2026-05-25", previas: 15, devolucoes: 3, etiquetas: 130, percursos: 6, inventario: 12},
+                {id: "4", date: "2026-05-26", previas: 8, devolucoes: 5, etiquetas: 95, percursos: 5, inventario: 4},
+                {id: "5", date: "2026-05-27", previas: 14, devolucoes: 2, etiquetas: 140, percursos: 7, inventario: 10},
+                {id: "6", date: "2026-05-28", previas: 9, devolucoes: 3, etiquetas: 120, percursos: 6, inventario: 7},
+                {id: "7", date: "2026-05-29", previas: 8, devolucoes: 6, etiquetas: 15, percursos: 3, inventario: 1},
+                {id: "day-1780150664711ni41q", date: "2026-05-30", previas: 0, devolucoes: 5, etiquetas: 27, percursos: 5, inventario: 0},
+                {id: "day-1780216976898qlydk", date: "2026-05-31", previas: 0, devolucoes: 0, etiquetas: 0, percursos: 0, inventario: 0}
+            ],
+            occurrences: [
+                {id: "ri-1780151507047", date: "2026-05-30", percurso: "11728459", paletes: 1, problema: "DEVOLUÇÃO", status: "RESOLVIDA T1"},
+                {id: "ri-1780151525892", date: "2026-05-30", percurso: "11726479", paletes: 1, problema: "DEVOLUÇÃO", status: "RESOLVIDA T1"},
+                {id: "ri-1780151546036", date: "2026-05-30", percurso: "11728463", paletes: 1, problema: "DEVOLUÇÃO", status: "RESOLVIDA T1"},
+                {id: "ri-1780151562668", date: "2026-05-30", percurso: "11726799", paletes: 6, problema: "DEVOLUÇÃO", status: "RETRABALHANDO"},
+                {id: "ri-1780151584287", date: "2026-05-30", percurso: "11726424", paletes: 2, problema: "DEVOLUÇÃO", status: "RESOLVIDA T1"},
+                {id: "ri-1780151603444", date: "2026-05-30", percurso: "11725920", paletes: 27, problema: "ETIQUETAS", status: "RESOLVIDA T1"},
+                {id: "ri-1780151634660", date: "2026-05-30", percurso: "11727819", paletes: 3, problema: "DEVOLUÇÃO", status: "DEVOLUÇÃO"},
+                {id: "ri-1780151654036", date: "2026-05-30", percurso: "11728358", paletes: 1, problema: "DEVOLUÇÃO", status: "DEVOLUÇÃO"},
+                {id: "ri-1780151674684", date: "2026-05-30", percurso: "11723238", paletes: 1, problema: "INVENTÁRIO", status: "RETRABALHANDO"},
+                {id: "ri-1780151684508", date: "2026-05-30", percurso: "11728510", paletes: 1, problema: "INVENTÁRIO", status: "RETRABALHANDO"}
+            ]
+        };
+
+        let appState = { production: [], occurrences: [] };
+        let selectedFilter = 'Tudo';
+        let showAllHistoryRows = false;
+        let pChart = null;
+        let dChart = null;
+        let idToDelete = null;
+
+        // Configuration setup for Cloud Database
+        let db = null;
+        let auth = null;
+        let useCloud = false;
+        let appId = typeof __app_id !== 'undefined' ? __app_id : 'logitrack-default';
+
+        if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+            try {
+                const firebaseConfig = JSON.parse(__firebase_config);
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                useCloud = true;
+            } catch(e) {
+                console.error("Erro ao inicializar base de dados em nuvem. Fallback local ativo.", e);
+            }
+        }
+
+        // Se usar Cloud, inicializar sincronização com Firestore
+        if (useCloud) {
+            const initCloudSync = async () => {
+                // Autenticação prévia obrigatória
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                const cloudIndicator = document.getElementById('cloud-indicator');
+                const cloudText = document.getElementById('cloud-text');
+                cloudIndicator.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse";
+                cloudText.textContent = "Sincronizado na Nuvem";
+
+                const occurrencesCol = collection(db, 'artifacts', appId, 'public', 'data', 'occurrences');
+                const productionCol = collection(db, 'artifacts', appId, 'public', 'data', 'production');
+
+                let occurrencesLoaded = false;
+                let productionLoaded = false;
+
+                // Escutar Ocorrências em tempo real
+                onSnapshot(occurrencesCol, (snapshot) => {
+                    const list = [];
+                    snapshot.forEach(doc => {
+                        list.push({ id: doc.id, ...doc.data() });
+                    });
+
+                    // Se for a primeira inicialização em nuvem e estiver vazio, povoar com fallbacks
+                    if (list.length === 0 && !occurrencesLoaded) {
+                        fallbackData.occurrences.forEach(item => {
+                            setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'occurrences', item.id), item);
+                        });
+                    } else {
+                        appState.occurrences = list;
+                        updateDashboard();
+                    }
+                    occurrencesLoaded = true;
+                }, (error) => console.error("Erro na escuta das ocorrências:", error));
+
+                // Escutar Histórico em tempo real
+                onSnapshot(productionCol, (snapshot) => {
+                    const list = [];
+                    snapshot.forEach(doc => {
+                        list.push({ id: doc.id, ...doc.data() });
+                    });
+
+                    if (list.length === 0 && !productionLoaded) {
+                        fallbackData.production.forEach(item => {
+                            const docId = 'prod-' + item.date;
+                            setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'production', docId), item);
+                        });
+                    } else {
+                        appState.production = list;
+                        updateDashboard();
+                    }
+                    productionLoaded = true;
+                }, (error) => console.error("Erro na escuta de produção:", error));
+            };
+
+            initCloudSync();
+        } else {
+            // Se não usar nuvem, carregar LocalStorage ou fallback estático
+            const storedState = localStorage.getItem('logitrack_state');
+            if (storedState) {
+                try {
+                    appState = JSON.parse(storedState);
+                } catch(e) {
+                    appState = JSON.parse(JSON.stringify(fallbackData));
+                }
+            } else {
+                appState = JSON.parse(JSON.stringify(fallbackData));
+            }
+            
+            const cloudIndicator = document.getElementById('cloud-indicator');
+            const cloudText = document.getElementById('cloud-text');
+            cloudIndicator.className = "w-2.5 h-2.5 rounded-full bg-amber-400";
+            cloudText.textContent = "Controlo Local Ativo (Sem Nuvem)";
+            
+            setTimeout(() => {
+                updateDashboard();
+            }, 100);
+        }
+
+        // On document load
+        window.onload = function() {
+            // Set current date in form default
+            const todayStr = new Date().toISOString().split('T')[0];
+            document.getElementById('form-date').value = todayStr;
+
+            // Fechar dropdowns/modais ao clicar fora
+            document.addEventListener('click', function(e) {
+                const dropdown = document.getElementById('backup-dropdown');
+                if (!e.target.closest('.group')) {
+                    dropdown.classList.add('hidden');
+                }
+            });
+        };
+
+        // Persistência local helper (usada como backup se não estiver na nuvem)
+        function saveStateToStorage() {
+            if (!useCloud) {
+                localStorage.setItem('logitrack_state', JSON.stringify(appState));
+            }
+        }
+
+        // Toast Messages helper
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `p-4 rounded-xl shadow-xl flex items-center gap-3 border transition-all duration-300 transform translate-y-2 opacity-0 pointer-events-auto max-w-sm ${
+                type === 'success' 
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
+                : 'bg-rose-50 border-rose-200 text-rose-800'
+            }`;
+            
+            const icon = type === 'success' 
+                ? `<svg class="w-5 h-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`
+                : `<svg class="w-5 h-5 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>`;
+
+            toast.innerHTML = `
+                ${icon}
+                <div class="text-xs font-semibold">${message}</div>
+            `;
+            
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.remove('opacity-0', 'translate-y-2');
+            }, 50);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        // Toggles & Modal Utilities
+        function toggleBackupDropdown() {
+            const dropdown = document.getElementById('backup-dropdown');
+            dropdown.classList.toggle('hidden');
+        }
+
+        function scrollToSection(id) {
+            document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Alternar status das ocorrências ciclicamente com sincronização
+        async function toggleStatus(occurrenceId) {
+            const idx = appState.occurrences.findIndex(o => o.id === occurrenceId);
+            if (idx === -1) return;
+
+            const current = appState.occurrences[idx].status;
+            let next = 'RESOLVIDA T1';
+            if (current === 'RESOLVIDA T1') next = 'RETRABALHANDO';
+            else if (current === 'RETRABALHANDO') next = 'DEVOLUÇÃO';
+
+            if (useCloud) {
+                try {
+                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'occurrences', occurrenceId), {
+                        status: next
+                    });
+                    showToast(`Status atualizado para ${next} na nuvem!`);
+                } catch (err) {
+                    showToast("Erro ao sincronizar status na nuvem", "error");
+                }
+            } else {
+                appState.occurrences[idx].status = next;
+                saveStateToStorage();
+                showToast(`Status da ocorrência ${appState.occurrences[idx].percurso} alterado para ${next}`);
+                updateDashboard();
+            }
+        }
+
+        // Modais Customizados
+        function openConfirmModal(id) {
+            idToDelete = id;
+            const modal = document.getElementById('confirm-modal');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.querySelector('.transform').classList.remove('scale-95');
+            }, 50);
+
+            document.getElementById('modal-confirm-delete-btn').onclick = function() {
+                deleteOccurrence(idToDelete);
+                closeConfirmModal();
+            };
+        }
+
+        function closeConfirmModal() {
+            const modal = document.getElementById('confirm-modal');
+            modal.classList.add('opacity-0');
+            modal.querySelector('.transform').classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        function openEditModal(id) {
+            const o = appState.occurrences.find(occ => occ.id === id);
+            if (!o) return;
+
+            document.getElementById('edit-id').value = o.id;
+            document.getElementById('edit-date').value = o.date;
+            document.getElementById('edit-percurso').value = o.percurso;
+            document.getElementById('edit-paletes').value = o.paletes;
+            document.getElementById('edit-problema').value = o.problema;
+            document.getElementById('edit-status').value = o.status;
+
+            const modal = document.getElementById('edit-modal');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.querySelector('.transform').classList.remove('scale-95');
+            }, 50);
+        }
+
+        function closeEditModal() {
+            const modal = document.getElementById('edit-modal');
+            modal.classList.add('opacity-0');
+            modal.querySelector('.transform').classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        // Modificação de registros de produção consolidada na nuvem
+        async function adjustProductivityValCloud(date, problema, val) {
+            const docId = 'prod-' + date;
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'production', docId);
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                const update = {};
+                if (problema === "PRÉVIAS") update.previas = Math.max(0, (data.previas || 0) + val);
+                else if (problema === "DEVOLUÇÃO") update.devolucoes = Math.max(0, (data.devolucoes || 0) + val);
+                else if (problema === "ETIQUETAS") update.etiquetas = Math.max(0, (data.etiquetas || 0) + val);
+                else if (problema === "PERCURSOS") update.percursos = Math.max(0, (data.percursos || 0) + val);
+                else if (problema === "INVENTÁRIO") update.inventario = Math.max(0, (data.inventario || 0) + val);
+                await updateDoc(docRef, update);
+            } else if (val > 0) {
+                const newProd = {
+                    date: date,
+                    previas: problema === "PRÉVIAS" ? val : 0,
+                    devolucoes: problema === "DEVOLUÇÃO" ? val : 0,
+                    etiquetas: problema === "ETIQUETAS" ? val : 0,
+                    percursos: problema === "PERCURSOS" ? val : 0,
+                    inventario: problema === "INVENTÁRIO" ? val : 0
+                };
+                await setDoc(docRef, newProd);
+            }
+        }
+
+        // Salvar alterações de Edição
+        async function handleEditFormSubmit(event) {
+            event.preventDefault();
+            const id = document.getElementById('edit-id').value;
+            const idx = appState.occurrences.findIndex(o => o.id === id);
+            if (idx === -1) return;
+
+            const oldProblem = appState.occurrences[idx].problema;
+            const oldPaletes = appState.occurrences[idx].paletes || 1;
+            const oldDate = appState.occurrences[idx].date;
+
+            const newDate = document.getElementById('edit-date').value;
+            const newPercurso = document.getElementById('edit-percurso').value.trim();
+            const newPaletes = parseInt(document.getElementById('edit-paletes').value) || 1;
+            const newProblema = document.getElementById('edit-problema').value;
+            const newStatus = document.getElementById('edit-status').value;
+
+            if (useCloud) {
+                try {
+                    // Descontar valores antigos
+                    await adjustProductivityValCloud(oldDate, oldProblem, -oldPaletes);
+                    // Atualizar ocorrência
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'occurrences', id), {
+                        date: newDate,
+                        percurso: newPercurso,
+                        paletes: newPaletes,
+                        problema: newProblema,
+                        status: newStatus
+                    });
+                    // Somar novos valores
+                    await adjustProductivityValCloud(newDate, newProblema, newPaletes);
+                    showToast("Registo atualizado e sincronizado na nuvem com sucesso!");
+                } catch (err) {
+                    showToast("Erro ao editar registo na nuvem", "error");
+                }
+            } else {
+                // Modo offline / local
+                adjustProductivityValLocal(oldDate, oldProblem, -oldPaletes);
+                appState.occurrences[idx].date = newDate;
+                appState.occurrences[idx].percurso = newPercurso;
+                appState.occurrences[idx].paletes = newPaletes;
+                appState.occurrences[idx].problema = newProblema;
+                appState.occurrences[idx].status = newStatus;
+                adjustProductivityValLocal(newDate, newProblema, newPaletes);
+                saveStateToStorage();
+                showToast("Ocorrência local modificada com sucesso!");
+                updateDashboard();
+            }
+            closeEditModal();
+        }
+
+        function adjustProductivityValLocal(date, problema, val) {
+            let prodDay = appState.production.find(p => p.date === date);
+            if (!prodDay && val > 0) {
+                prodDay = { id: 'day-' + Date.now(), date: date, previas: 0, devolucoes: 0, etiquetas: 0, percursos: 0, inventario: 0 };
+                appState.production.push(prodDay);
+            }
+            if (prodDay) {
+                if (problema === "PRÉVIAS") prodDay.previas = Math.max(0, (prodDay.previas || 0) + val);
+                else if (problema === "DEVOLUÇÃO") prodDay.devolucoes = Math.max(0, (prodDay.devolucoes || 0) + val);
+                else if (problema === "ETIQUETAS") prodDay.etiquetas = Math.max(0, (prodDay.etiquetas || 0) + val);
+                else if (problema === "PERCURSOS") prodDay.percursos = Math.max(0, (prodDay.percursos || 0) + val);
+                else if (problema === "INVENTÁRIO") prodDay.inventario = Math.max(0, (prodDay.inventario || 0) + val);
+            }
+        }
+
+        // Excluir Ocorrência
+        async function deleteOccurrence(id) {
+            const o = appState.occurrences.find(occ => occ.id === id);
+            if (!o) return;
+            const val = o.paletes !== "" ? parseInt(o.paletes) : 1;
+
+            if (useCloud) {
+                try {
+                    await adjustProductivityValCloud(o.date, o.problema, -val);
+                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'occurrences', id));
+                    showToast(`Ocorrência ${o.percurso} removida com sucesso!`, 'success');
+                } catch(err) {
+                    showToast("Erro ao eliminar da nuvem.", "error");
+                }
+            } else {
+                const index = appState.occurrences.findIndex(occ => occ.id === id);
+                adjustProductivityValLocal(o.date, o.problema, -val);
+                appState.occurrences.splice(index, 1);
+                saveStateToStorage();
+                showToast(`Ocorrência ${o.percurso} removida com sucesso!`, 'success');
+                updateDashboard();
+            }
+        }
+
+        // Gravar nova ocorrência
+        async function handleFormSubmit(event) {
+            event.preventDefault();
+            
+            const date = document.getElementById('form-date').value;
+            const percurso = document.getElementById('form-percurso').value.trim();
+            const paletes = document.getElementById('form-paletes').value;
+            const problema = document.getElementById('form-problema').value;
+            const status = document.getElementById('form-status').value;
+
+            if (!percurso) {
+                showToast("Por favor insira um percurso válido.", "error");
+                return;
+            }
+
+            const val = paletes !== "" ? parseInt(paletes) : 1;
+            const customId = 'ri-' + Date.now();
+
+            const newOccurrence = {
+                date: date,
+                percurso: percurso,
+                paletes: val,
+                problema: problema,
+                status: status
+            };
+
+            if (useCloud) {
+                try {
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'occurrences', customId), newOccurrence);
+                    await adjustProductivityValCloud(date, problema, val);
+                    showToast("Nova ocorrência gravada e sincronizada na nuvem!", "success");
+                } catch(err) {
+                    showToast("Erro ao enviar ocorrência para a nuvem.", "error");
+                }
+            } else {
+                newOccurrence.id = customId;
+                appState.occurrences.unshift(newOccurrence);
+                adjustProductivityValLocal(date, problema, val);
+                saveStateToStorage();
+                showToast("Nova ocorrência gravada com sucesso!");
+                updateDashboard();
+            }
+
+            // Reset campos
+            document.getElementById('form-percurso').value = "";
+            document.getElementById('form-paletes').value = "";
+        }
+
+        // Toggle visualização completa histórico
+        function toggleAllHistory() {
+            showAllHistoryRows = !showAllHistoryRows;
+            document.getElementById('btn-show-all-history').textContent = showAllHistoryRows ? "Mostrar Menos" : "Ver Todo o Histórico";
+            renderHistoryTable();
+        }
+
+        // Filtro Gráficos
+        function filterChart(category) {
+            selectedFilter = category;
+            document.querySelectorAll('.chart-filter-btn').forEach(btn => {
+                btn.className = "chart-filter-btn px-3 py-1.5 text-xs font-medium rounded-lg text-slate-600 hover:text-slate-900 transition-all";
+            });
+            const activeBtn = document.getElementById(`btn-filter-${category}`);
+            if (activeBtn) {
+                activeBtn.className = "chart-filter-btn px-3 py-1.5 text-xs font-medium rounded-lg bg-white shadow-sm text-indigo-600 transition-all";
+            }
+            renderProductivityChart();
+        }
+
+        // Update Dashboard Main
+        function updateDashboard() {
+            calculateMetrics();
+            renderOccurrencesTable();
+            renderHistoryTable();
+            renderProductivityChart();
+            renderDistributionChart();
+        }
+
+        // Cálculo Dinâmico KPIs e Metas
+        function calculateMetrics() {
+            const totalOccurrences = appState.occurrences.length;
+            const pendingOccurrences = appState.occurrences.filter(o => o.status !== "RESOLVIDA T1").length;
+            
+            document.getElementById('pendentes-badge').textContent = `${pendingOccurrences} PENDENTES`;
+            document.getElementById('totais-turno').textContent = `${totalOccurrences} registos totais neste turno`;
+            document.getElementById('total-operacoes').textContent = totalOccurrences;
+
+            const resolvedCount = totalOccurrences - pendingOccurrences;
+            const efficiency = totalOccurrences > 0 ? Math.round((resolvedCount / totalOccurrences) * 100) : 100;
+            document.getElementById('eficiencia-turno').textContent = `${efficiency}%`;
+
+            const categories = {
+                'DEVOLUÇÃO': { rede: 0, prog: 0 },
+                'ETIQUETAS': { rede: 0, prog: 0 },
+                'INVENTÁRIO': { rede: 0, prog: 0 },
+                'PRÉVIAS': { rede: 0, prog: 0 },
+                'PERCURSOS': { rede: 0, prog: 0 }
+            };
+
+            appState.occurrences.forEach(o => {
+                const prob = o.problema.toUpperCase();
+                if (categories[prob]) {
+                    const quant = o.paletes !== "" ? parseInt(o.paletes) : 1;
+                    if (o.status === "RESOLVIDA T1") {
+                        categories[prob].prog += quant;
+                    } else {
+                        categories[prob].rede += quant;
+                    }
+                }
+            });
+
+            // Altera elementos de KPIs na tela
+            document.getElementById('kpi-previas-rede').textContent = categories['PRÉVIAS'].rede;
+            document.getElementById('kpi-previas-prog').textContent = categories['PRÉVIAS'].prog;
+
+            document.getElementById('kpi-devolucoes-rede').textContent = categories['DEVOLUÇÃO'].rede;
+            document.getElementById('kpi-devolucoes-prog').textContent = categories['DEVOLUÇÃO'].prog;
+
+            document.getElementById('kpi-etiquetas-rede').textContent = categories['ETIQUETAS'].rede;
+            document.getElementById('kpi-etiquetas-prog').textContent = categories['ETIQUETAS'].prog;
+
+            document.getElementById('kpi-percursos-rede').textContent = categories['PERCURSOS'].rede;
+            document.getElementById('kpi-percursos-prog').textContent = categories['PERCURSOS'].prog;
+
+            document.getElementById('kpi-inventario-rede').textContent = categories['INVENTÁRIO'].rede;
+            document.getElementById('kpi-inventario-prog').textContent = categories['INVENTÁRIO'].prog;
+
+            // Progresso das Metas Diárias
+            let sumPrevias = 0, sumDevolucoes = 0, sumEtiquetas = 0, sumPercursos = 0, sumInventarios = 0;
+            appState.production.forEach(p => {
+                sumPrevias += p.previas || 0;
+                sumDevolucoes += p.devolucoes || 0;
+                sumEtiquetas += p.etiquetas || 0;
+                sumPercursos += p.percursos || 0;
+                sumInventarios += p.inventario || 0;
+            });
+
+            updateGoalElement('previas', sumPrevias, 20);
+            updateGoalElement('devolucoes', sumDevolucoes, 10);
+            updateGoalElement('etiquetas', sumEtiquetas, 150);
+            updateGoalElement('percursos', sumPercursos, 10);
+            updateGoalElement('inventario', sumInventarios, 10);
+        }
+
+        function updateGoalElement(id, current, max) {
+            const pct = Math.min(Math.round((current / max) * 100), 100);
+            document.getElementById(`meta-${id}-text`).textContent = `${current}/${max}`;
+            document.getElementById(`meta-${id}-bar`).style.width = `${pct}%`;
+        }
+
+        // Tabela Ocorrências Render
+        function renderOccurrencesTable() {
+            const container = document.getElementById('occurrences-table-body');
+            container.innerHTML = "";
+
+            const probFilter = document.getElementById('table-filter-problema').value;
+            const statusFilter = document.getElementById('table-filter-status').value;
+
+            let filtered = appState.occurrences;
+            if (probFilter !== "ALL") {
+                filtered = filtered.filter(o => o.problema === probFilter);
+            }
+            if (statusFilter !== "ALL") {
+                if (statusFilter === "DEVOLUÇÃO") {
+                    filtered = filtered.filter(o => o.status !== "RESOLVIDA T1" && o.status !== "RETRABALHANDO");
+                } else {
+                    filtered = filtered.filter(o => o.status === statusFilter);
+                }
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-10 text-slate-400 font-medium text-xs">
+                            Nenhum registo de ocorrência corresponde aos filtros ativos.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            filtered.forEach(o => {
+                const formattedDate = formatDateString(o.date);
+                const paleteVal = o.paletes !== "" ? o.paletes : "1";
+                
+                let statusClass = "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100";
+                if (o.status === "RESOLVIDA T1") {
+                    statusClass = "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100";
+                } else if (o.status === "RETRABALHANDO") {
+                    statusClass = "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100";
+                }
+
+                const row = document.createElement('tr');
+                row.className = "hover:bg-slate-50/50 transition-colors group";
+                row.innerHTML = `
+                    <td class="py-3.5 px-6 font-semibold text-slate-500">${formattedDate}</td>
+                    <td class="py-3.5 px-6 font-bold text-slate-800">${o.percurso}</td>
+                    <td class="py-3.5 px-6 text-center font-bold text-slate-700">${paleteVal}</td>
+                    <td class="py-3.5 px-6 font-semibold"><span class="text-slate-600">${o.problema}</span></td>
+                    <td class="py-3.5 px-6">
+                        <button class="px-3 py-1 text-[11px] font-bold rounded-full border transition-all cursor-pointer ${statusClass}" onclick="toggleStatus('${o.id}')">
+                            ${o.status}
+                        </button>
+                    </td>
+                    <td class="py-3.5 px-6">
+                        <div class="flex items-center justify-center gap-1 opacity-80 group-hover:opacity-100 transition-all">
+                            <button class="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 transition-all" onclick="openEditModal('${o.id}')" title="Editar">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                            </button>
+                            <button class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-all" onclick="openConfirmModal('${o.id}')" title="Excluir">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        // Tabela de Histórico Consolidador Render
+        function renderHistoryTable() {
+            const container = document.getElementById('history-table-body');
+            container.innerHTML = "";
+
+            const searchTerm = document.getElementById('history-search').value.toLowerCase().trim();
+            let items = [...appState.production].sort((a,b) => b.date.localeCompare(a.date));
+
+            if (searchTerm) {
+                items = items.filter(i => formatDateString(i.date).toLowerCase().includes(searchTerm));
+            }
+
+            const totalRecords = items.length;
+            const maxToShow = showAllHistoryRows ? totalRecords : 5;
+            const shownCount = Math.min(maxToShow, totalRecords);
+
+            document.getElementById('history-pagination-info').textContent = `A mostrar ${shownCount} de ${totalRecords} registos`;
+
+            if (items.length === 0) {
+                container.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-8 text-slate-400 font-medium text-xs">
+                            Nenhum registo histórico encontrado.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            const visibleItems = items.slice(0, maxToShow);
+            visibleItems.forEach(item => {
+                const row = document.createElement('tr');
+                row.className = "hover:bg-slate-50/50 transition-all";
+                row.innerHTML = `
+                    <td class="py-4 px-6 font-bold text-slate-700">${formatDateString(item.date)}</td>
+                    <td class="py-4 px-6 text-center">
+                        <span class="px-2.5 py-1 text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-full">${item.previas || 0}</span>
+                    </td>
+                    <td class="py-4 px-6 text-center">
+                        <span class="px-2.5 py-1 text-amber-600 bg-amber-50 border border-amber-100 rounded-full">${item.devolucoes || 0}</span>
+                    </td>
+                    <td class="py-4 px-6 text-center">
+                        <span class="px-2.5 py-1 text-blue-600 bg-blue-50 border border-blue-100 rounded-full">${item.etiquetas || 0}</span>
+                    </td>
+                    <td class="py-4 px-6 text-center">
+                        <span class="px-2.5 py-1 text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-full">${item.percursos || 0}</span>
+                    </td>
+                    <td class="py-4 px-6 text-center">
+                        <span class="px-2.5 py-1 text-purple-600 bg-purple-50 border border-purple-100 rounded-full">${item.inventario || 0}</span>
+                    </td>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        // Auxiliar: Formatação de Data AAAA-MM-DD para DD/MM/AAAA
+        function formatDateString(str) {
+            if (!str) return "";
+            const pts = str.split("-");
+            if (pts.length === 3) {
+                return `${pts[2]}/${pts[1]}/${pts[0]}`;
+            }
+            return str;
+        }
+
+        // Renderização de Gráfico de Produtividade Consolidado
+        function renderProductivityChart() {
+            const canvas = document.getElementById('productivityChart');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            let sortedProd = [...appState.production].sort((a, b) => a.date.localeCompare(b.date));
+            if (sortedProd.length > 7) {
+                sortedProd = sortedProd.slice(sortedProd.length - 7);
+            }
+
+            const labels = sortedProd.map(item => formatDateString(item.date));
+
+            const allDatasets = [
+                {
+                    label: 'Prévias Prontas',
+                    data: sortedProd.map(item => item.previas || 0),
+                    backgroundColor: '#10B981',
+                    barThickness: 16,
+                    borderRadius: selectedFilter === 'Tudo' || selectedFilter === 'Prévias' ? 4 : 0
+                },
+                {
+                    label: 'Retrabalhados',
+                    data: sortedProd.map(item => item.devolucoes || 0),
+                    backgroundColor: '#F59E0B',
+                    barThickness: 16,
+                    borderRadius: selectedFilter === 'Tudo' || selectedFilter === 'Retrabalhos' ? 4 : 0
+                },
+                {
+                    label: 'Etiquetas',
+                    data: sortedProd.map(item => item.etiquetas || 0),
+                    backgroundColor: '#3B82F6',
+                    barThickness: 16,
+                    borderRadius: selectedFilter === 'Tudo' || selectedFilter === 'Etiquetas' ? 4 : 0
+                },
+                {
+                    label: 'Percursos Resolvidos',
+                    data: sortedProd.map(item => item.percursos || 0),
+                    backgroundColor: '#6366F1',
+                    barThickness: 16,
+                    borderRadius: selectedFilter === 'Tudo' || selectedFilter === 'Percursos' ? 4 : 0
+                },
+                {
+                    label: 'Inventários',
+                    data: sortedProd.map(item => item.inventario || 0),
+                    backgroundColor: '#A855F7',
+                    barThickness: 16,
+                    borderRadius: 4
+                }
+            ];
+
+            let filteredDatasets = allDatasets;
+            if (selectedFilter !== 'Tudo') {
+                if (selectedFilter === 'Prévias') filteredDatasets = [allDatasets[0]];
+                else if (selectedFilter === 'Retrabalhos') filteredDatasets = [allDatasets[1]];
+                else if (selectedFilter === 'Etiquetas') filteredDatasets = [allDatasets[2]];
+                else if (selectedFilter === 'Percursos') filteredDatasets = [allDatasets[3]];
+                else if (selectedFilter === 'Inventário') filteredDatasets = [allDatasets[4]];
+            }
+
+            if (pChart) pChart.destroy();
+
+            pChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: filteredDatasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 10,
+                                usePointStyle: true,
+                                padding: 18,
+                                font: {
+                                    family: 'Plus Jakarta Sans',
+                                    size: 11,
+                                    weight: 'bold'
+                                }
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: '#1E1F5A',
+                            titleFont: { family: 'Plus Jakarta Sans', weight: 'bold' },
+                            bodyFont: { family: 'Plus Jakarta Sans' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            grid: { display: false },
+                            ticks: { font: { family: 'Plus Jakarta Sans', size: 10, weight: 'bold' }, color: '#94A3B8' }
+                        },
+                        y: {
+                            stacked: true,
+                            grid: { color: '#F1F5F9' },
+                            ticks: { font: { family: 'Plus Jakarta Sans', size: 10 }, color: '#94A3B8' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Gráfico Rosca de Proporção operacional de Ocorrências
+        function renderDistributionChart() {
+            const canvas = document.getElementById('distributionChart');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const placeholder = document.getElementById('distribution-empty');
+
+            const dataCounts = {
+                'DEVOLUÇÃO': 0,
+                'ETIQUETAS': 0,
+                'INVENTÁRIO': 0,
+                'PRÉVIAS': 0,
+                'PERCURSOS': 0
+            };
+
+            appState.occurrences.forEach(o => {
+                const prob = o.problema.toUpperCase();
+                if (dataCounts[prob] !== undefined) {
+                    dataCounts[prob] += o.paletes !== "" ? parseInt(o.paletes) : 1;
+                }
+            });
+
+            const values = Object.values(dataCounts);
+            const sum = values.reduce((a, b) => a + b, 0);
+
+            if (sum === 0) {
+                placeholder.classList.remove('hidden');
+            } else {
+                placeholder.classList.add('hidden');
+            }
+
+            if (dChart) dChart.destroy();
+
+            dChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(dataCounts),
+                    datasets: [{
+                        data: values,
+                        backgroundColor: ['#F59E0B', '#3B82F6', '#A855F7', '#10B981', '#6366F1'],
+                        borderWidth: 2,
+                        borderColor: '#FFFFFF'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: '#1E1F5A',
+                            titleFont: { family: 'Plus Jakarta Sans', weight: 'bold' },
+                            bodyFont: { family: 'Plus Jakarta Sans' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Importação e Exportação JSON
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "logitrack_pro_backup.json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            showToast("Dados exportados com sucesso!");
+        }
+
+        function triggerImport() {
+            document.getElementById('import-file-input').click();
+        }
+
+        async function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (imported.production && imported.occurrences) {
+                        if (useCloud) {
+                            // Subir tudo para a nuvem sincronizada
+                            for (const item of imported.occurrences) {
+                                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'occurrences', item.id), item);
+                            }
+                            for (const item of imported.production) {
+                                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'production', 'prod-' + item.date), item);
+                            }
+                        } else {
+                            appState = imported;
+                            saveStateToStorage();
+                            updateDashboard();
+                        }
+                        showToast("Ficheiro JSON importado com sucesso!");
+                    } else {
+                        showToast("Ficheiro inválido.", "error");
+                    }
+                } catch(err) {
+                    showToast("Erro ao ler JSON.", "error");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        async function resetToFallback() {
+            if (useCloud) {
+                // Remove atuais da nuvem e re-insere os fallbacks
+                for (const item of appState.occurrences) {
+                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'occurrences', item.id));
+                }
+                for (const item of appState.production) {
+                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'production', 'prod-' + item.date));
+                }
+                fallbackData.occurrences.forEach(item => {
+                    setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'occurrences', item.id), item);
+                });
+                fallbackData.production.forEach(item => {
+                    setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'production', 'prod-' + item.date), item);
+                });
+            } else {
+                appState = JSON.parse(JSON.stringify(fallbackData));
+                saveStateToStorage();
+                updateDashboard();
+            }
+            showToast("Painel restaurado para os dados padrão!");
+        }
+
+        // Registrar chamadas globais de botões onclick para escopo do módulo
+        window.scrollToSection = scrollToSection;
+        window.toggleStatus = toggleStatus;
+        window.openConfirmModal = openConfirmModal;
+        window.closeConfirmModal = closeConfirmModal;
+        window.openEditModal = openEditModal;
+        window.closeEditModal = closeEditModal;
+        window.handleEditFormSubmit = handleEditFormSubmit;
+        window.handleFormSubmit = handleFormSubmit;
+        window.toggleAllHistory = toggleAllHistory;
+        window.filterChart = filterChart;
+        window.exportData = exportData;
+        window.triggerImport = triggerImport;
+        window.importData = importData;
+        window.resetToFallback = resetToFallback;
+        window.renderOccurrencesTable = renderOccurrencesTable;
+        window.renderHistoryTable = renderHistoryTable;
+        window.toggleBackupDropdown = toggleBackupDropdown;
+
+    </script>
+</body>
+</html>
